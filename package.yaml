@@ -28,6 +28,13 @@ library:
   - parsec
   - directory
   - filepath
+  - http-conduit
+  - authenticate-oauth
+  - text
+  - aeson
+  - bytestring
+  - mtl
+  - time
 
 executables:
   twitter-friend-list-exe:

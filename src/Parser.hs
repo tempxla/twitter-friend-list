@@ -1,4 +1,7 @@
-module Parser (readTwitApiKeys) where
+module Parser
+  ( readTwitApiKeys
+  , TwitApiKeys (..)
+  ) where
 
 import           System.Directory
 import           System.FilePath.Posix
@@ -7,8 +10,8 @@ import           Text.Parsec.Combinator
 import           Text.Parsec.Prim
 import           Text.Parsec.String
 
-data TwitApiKeys = TwitApiKeys {
-  consumerKey         :: String
+data TwitApiKeys = TwitApiKeys
+  { consumerKey       :: String
   , consumerSecret    :: String
   , accessToken       :: String
   , accessTokenSecret :: String

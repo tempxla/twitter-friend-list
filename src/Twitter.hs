@@ -75,14 +75,14 @@ getUserList = do
 
 followerToUser :: Follower -> User
 followerToUser x = User
-  { idStr      = id_str x
-  , screenName = screen_name x
+  { idStr      = id_str       x
+  , screenName = screen_name  x
   , friendShip = if following x then Friend else Followered
   }
 
 followingToUser :: [User] -> Follower -> User
 followingToUser ws x = User
-  { idStr      = id_str x
+  { idStr      = id_str      x
   , screenName = screen_name x
   , friendShip = case filter (\w -> id_str x == idStr w) ws of
                    [] -> Following

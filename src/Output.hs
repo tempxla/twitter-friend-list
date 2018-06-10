@@ -20,8 +20,7 @@ getCurrentDateTime = formatTime defaultTimeLocale "%y%m%d%H%M%S" <$> getZonedTim
 
 outputUserList :: String -> [User] -> [User] -> IO String
 outputUserList confDir wer ing = do
-  dir <- getCurrentDateTime
-  let outDir = confDir </> dir
+  outDir <- (confDir </>) <$> getCurrentDateTime
   createDirectory outDir
   writeFile (outDir </> "follower.txt") $ unlines $ map show wer
   writeFile (outDir </> "folloing.txt") $ unlines $ map show ing

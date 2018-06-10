@@ -62,7 +62,7 @@ getFollowerListAll man which = concat <$> f "-1"
       (users list :) <$> f (next_cursor_str list)
 
 --
--- Return: (Follower, Follower)
+-- Return: (Follower, Following)
 --
 getUserList :: EO ([User], [User])
 getUserList = do
@@ -75,16 +75,16 @@ getUserList = do
 
 followerToUser :: Follower -> User
 followerToUser x = User
-  { idStr         = id_str x
+  { idStr      = id_str x
   , screenName = screen_name x
   , friendShip = if following x then Friend else Followered
   }
 
 followingToUser :: [User] -> Follower -> User
-followingToUser ys x = User
-  { idStr         = id_str x
+followingToUser ws x = User
+  { idStr      = id_str x
   , screenName = screen_name x
-  , friendShip = case filter (\y -> id_str x == idStr y) ys of
+  , friendShip = case filter (\w -> id_str x == idStr w) ws of
                    [] -> Following
                    _  -> Friend
   }

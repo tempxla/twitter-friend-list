@@ -18,19 +18,23 @@ getConfigPath = fmap (</> configDir) getHomeDirectory
 getCurrentDateTime :: IO String
 getCurrentDateTime = formatTime defaultTimeLocale "%y%m%d%H%M%S" <$> getZonedTime
 
-outputUserList :: String -> [User] -> [User] -> IO ()
+outputUserList :: String -> [User] -> [User] -> IO String
 outputUserList confDir wer ing = do
   dir <- getCurrentDateTime
   let outDir = confDir </> dir
   createDirectory outDir
   writeFile (outDir </> "follower.txt") $ unlines $ map show wer
   writeFile (outDir </> "folloing.txt") $ unlines $ map show ing
+  return outDir
 
 downloadUserList :: IO ()
 downloadUserList = do
+  putStrLn "download..."
   confDir <- getConfigPath
   createDirectoryIfMissing False confDir
   userList <- runExceptT TW.getUserList
   case userList of
-    Left e           -> print e
-    Right (wer, ing) -> outputUserList confDir wer ing
+    Left e           -> putStrLn $ "error.: " ++ e
+    Right (wer, ing) -> do
+      p <- outputUserList confDir wer ing
+      putStrLn $ "done.: " ++ p

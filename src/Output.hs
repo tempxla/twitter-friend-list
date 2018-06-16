@@ -1,5 +1,7 @@
 module Output
-  where
+  ( diffLatestUserList
+  , downloadAndDiff
+  ) where
 
 import           Control.Monad.Except
 import           Data.List             (sortBy, union)
@@ -44,34 +46,14 @@ outputUserList confDir wer ing = do
   writeFile (outDir </> "folloing.txt") $ unlines $ map show ing
   return outDir
 
-downloadUserList :: IO ()
-downloadUserList = do
-  putStr "download... "
+takeUserList :: Int -> IO [[User]]
+takeUserList i = do
+  putStrStart "load"
   confDir <- getConfigPath
-  createDirectoryIfMissing False confDir
-  userList <- runExceptT TW.getUserList
-  case userList of
-    Left e           -> putStrLn "error.:" >> putStrLn e
-    Right (wer, ing) -> do
-      p <- outputUserList confDir wer ing
-      putStrLn "done.:"
-      putStrLn p
-
-loadLatestUserList :: IO (Either String ([User], [User]))
-loadLatestUserList = do
-  confDir <- getConfigPath
-  dirs <- take 2 . sortBy (flip compare) <$> listDirectory confDir
-  case dirs of
-    []         -> return $ Left "user list not found."
-    [new]      -> return $ Left "it can't run diff since found only one user list."
-    [new, old] -> do
-      wer  <- readFunc $ confDir </> old </> "follower.txt"
-      ing  <- readFunc $ confDir </> old </> "folloing.txt"
-      wer' <- readFunc $ confDir </> new </> "follower.txt"
-      ing' <- readFunc $ confDir </> new </> "folloing.txt"
-      return $ Right (wer `union` ing, wer' `union` ing')
-  where
-    readFunc path = map read . lines <$> readFile path
+  list <- take i . sortBy (flip compare) <$> listDirectory confDir
+  forM list $ \dir -> do
+    let r file = map read . lines <$> readFile (confDir </> dir </> file)
+    union <$> r "follower.txt" <*> r "folloing.txt"
 
 makeDiffUserList :: [User] -> [User] -> [UserDiff]
 makeDiffUserList old new = older old new ++ newer old new
@@ -84,12 +66,51 @@ makeDiffUserList old new = older old new ++ newer old new
     f x []                 = Just $ Del x
     newer xs = map Add . filter (flip notElem (map idStr xs) . idStr)
 
+downloadUserList :: EO [User]
+downloadUserList = do
+  liftIO $ putStrStart "download"
+  (wer, ing) <- TW.getUserList
+  liftIO $ do
+    confDir <- getConfigPath
+    createDirectoryIfMissing False confDir
+    putStrDone =<< outputUserList confDir wer ing
+  return $ union wer ing
+
+downloadAndDiff :: IO ()
+downloadAndDiff = do
+  newE <- runExceptT downloadUserList
+  eitherDo newE $ \new -> do
+    list <- takeUserList 1
+    case list of
+      []    -> putStrDone =<< diffUserList [] new
+      [old] -> putStrDone =<< diffUserList old new
+      _     -> putStrErr "load"
+
 diffLatestUserList :: IO ()
 diffLatestUserList = do
-  putStr "diff lastest list... "
-  list <- loadLatestUserList
+  list <- takeUserList 2
   case list of
-    Left e -> putStrLn "error.:" >> putStrLn e
-    Right (old, new) -> do
-      putStrLn "done.:"
-      mapM_ (putStrLn . showUserDiff) $ makeDiffUserList old new
+    []         -> putStrErr "user list not found."
+    [new]      -> putStrDone =<< diffUserList [] new
+    [new, old] -> putStrDone =<< diffUserList old new
+    _          -> putStrErr "load"
+
+diffUserList :: [User] -> [User] -> IO String
+diffUserList old new = do
+  putStrStart "diff"
+  let result = if   null old
+               then unlines $ map (showUserDiff . Add) new
+               else unlines $ map showUserDiff $ makeDiffUserList old new
+  return $ if result == "" then "no changes." else result
+
+putStrErr :: String -> IO ()
+putStrErr s = putStrLn "error." >> putStrLn s
+
+putStrDone :: String -> IO ()
+putStrDone s = putStrLn "done." >> putStrLn s
+
+eitherDo :: Either String a -> (a -> IO ()) -> IO ()
+eitherDo x act = either putStrErr act x
+
+putStrStart :: String -> IO ()
+putStrStart s = putStr $ "* " ++ s ++ "... "

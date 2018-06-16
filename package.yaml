@@ -36,7 +36,7 @@ library:
   - time
 
 executables:
-  twitter-friend-list-exe:
+  twitter-friend-list:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

@@ -14,10 +14,9 @@ At first, make a file "~/.twitter_api_keys" include twitter api keys.
     access_token        = "......"
     access_token_secret = "......"
 
-When you run command, the tool download followers and followings, and diff latest list.
+When you run this command, the tool download followers and followings, and diff latest list.
 
     twitter-friend-list
 If you need not download, add "diff" option.
 
     twitter-friend-list diff
-    

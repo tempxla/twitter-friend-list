@@ -1,5 +1,6 @@
 module Output
-  ( diffLatestUserList
+  ( createConfigDirectoryIfMissing
+  , diffLatestUserList
   , downloadAndDiff
   ) where
 
@@ -42,8 +43,8 @@ outputUserList :: String -> [User] -> [User] -> IO String
 outputUserList confDir wer ing = do
   outDir <- (confDir </>) <$> getCurrentDateTime
   createDirectory outDir
-  writeFile (outDir </> "follower.txt") $ unlines $ map show wer
-  writeFile (outDir </> "folloing.txt") $ unlines $ map show ing
+  writeFile (outDir </> "followers.txt") $ unlines $ map show wer
+  writeFile (outDir </> "following.txt") $ unlines $ map show ing
   return outDir
 
 takeUserList :: Int -> IO [[User]]
@@ -53,7 +54,7 @@ takeUserList i = do
   list <- take i . sortBy (flip compare) <$> listDirectory confDir
   forM list $ \dir -> do
     let r file = map read . lines <$> readFile (confDir </> dir </> file)
-    union <$> r "follower.txt" <*> r "folloing.txt"
+    union <$> r "followers.txt" <*> r "following.txt"
 
 makeDiffUserList :: [User] -> [User] -> [UserDiff]
 makeDiffUserList old new = older old new ++ newer old new
@@ -66,21 +67,23 @@ makeDiffUserList old new = older old new ++ newer old new
     f x []                 = Just $ Del x
     newer xs = map Add . filter (flip notElem (map idStr xs) . idStr)
 
+createConfigDirectoryIfMissing :: IO ()
+createConfigDirectoryIfMissing = createDirectoryIfMissing False =<< getConfigPath
+
 downloadUserList :: EO [User]
 downloadUserList = do
   liftIO $ putStrStart "download"
   (wer, ing) <- TW.getUserList
   liftIO $ do
     confDir <- getConfigPath
-    createDirectoryIfMissing False confDir
     putStrDone =<< outputUserList confDir wer ing
   return $ union wer ing
 
 downloadAndDiff :: IO ()
 downloadAndDiff = do
+  list <- takeUserList 1
   newE <- runExceptT downloadUserList
   eitherDo newE $ \new -> do
-    list <- takeUserList 1
     case list of
       []    -> putStrDone =<< diffUserList [] new
       [old] -> putStrDone =<< diffUserList old new

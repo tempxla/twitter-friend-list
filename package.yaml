@@ -30,7 +30,6 @@ library:
   - filepath
   - http-conduit
   - authenticate-oauth
-  - text
   - aeson
   - bytestring
   - mtl

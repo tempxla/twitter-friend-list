@@ -2,7 +2,6 @@ module Utils
   ( putStrStart
   , putStrErr
   , putStrDone
-  , putStrLnDone
   , eitherDo
   , tablize
   ) where
@@ -16,13 +15,7 @@ putStrErr :: String -> IO ()
 putStrErr s = putStrLn "error." >> putStrLn s
 
 putStrDone :: String -> IO ()
-putStrDone = putActDone putStr
-
-putStrLnDone :: String -> IO ()
-putStrLnDone = putActDone putStrLn
-
-putActDone :: (String -> IO ()) -> String -> IO ()
-putActDone act s = putStrLn "done." >> act s
+putStrDone s = putStrLn "done." >> putStrLn s
 
 eitherDo :: Either String a -> (a -> IO ()) -> IO ()
 eitherDo x act = either putStrErr act x

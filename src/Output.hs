@@ -72,7 +72,7 @@ downloadUserList = do
   (wer, ing) <- TW.getUserList
   liftIO $ do
     confDir <- getConfigPath
-    putStrLnDone =<< outputUserList confDir wer ing
+    putStrDone =<< outputUserList confDir wer ing
   return $ union wer ing
 
 downloadAndDiff :: IO ()

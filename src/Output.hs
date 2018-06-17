@@ -12,23 +12,19 @@ import           System.Directory
 import           System.FilePath.Posix
 import qualified Twitter               as TW
 import           Types
+import           Utils
 
 data UserDiff = Add User | Mod User User | Del User
   deriving (Show)
 
-showUserDiff :: UserDiff -> String
+showUserDiff :: UserDiff -> [String]
 showUserDiff diff = case diff of
-  (Add x)   -> tab ["ADD", screenName x,       show (friendShip x),         link x]
-  (Mod x y) -> tab ["MOD", sif screenName x y, sif (show . friendShip) x y, link y]
-  (Del x)   -> tab ["DEL", screenName x,       show (friendShip x),         link x]
+  (Add x)   -> ["ADD", screenName x,       show (friendShip x),         link x]
+  (Mod x y) -> ["MOD", sif screenName x y, sif (show . friendShip) x y, link y]
+  (Del x)   -> ["DEL", screenName x,       show (friendShip x),         link x]
   where
     link x = "https://twitter.com/" ++ screenName x
     sif f x y = f x ++ if f x == f y then "" else "->" ++ f y
-    tab []     = ""
-    tab (w:ws) = (pad 0 w ++) $
-                 foldr (\(i, z) acc -> '\t' : pad i z ++ acc) "" $ zip [20, 10, 0] ws
-      where
-        pad i z = z ++ replicate (max 0 $ i - length z) ' '
 
 configDir :: String
 configDir = ".twitter-friend-list"
@@ -76,7 +72,7 @@ downloadUserList = do
   (wer, ing) <- TW.getUserList
   liftIO $ do
     confDir <- getConfigPath
-    putStrDone =<< outputUserList confDir wer ing
+    putStrLnDone =<< outputUserList confDir wer ing
   return $ union wer ing
 
 downloadAndDiff :: IO ()
@@ -101,18 +97,6 @@ diffUserList :: [User] -> [User] -> IO String
 diffUserList old new = do
   putStrStart "diff"
   let result = if   null old
-               then unlines $ map (showUserDiff . Add) new
-               else unlines $ map showUserDiff $ makeDiffUserList old new
+               then tablize $ map (showUserDiff . Add) new
+               else tablize $ map showUserDiff $ makeDiffUserList old new
   return $ if result == "" then "no changes." else result
-
-putStrErr :: String -> IO ()
-putStrErr s = putStrLn "error." >> putStrLn s
-
-putStrDone :: String -> IO ()
-putStrDone s = putStrLn "done." >> putStrLn s
-
-eitherDo :: Either String a -> (a -> IO ()) -> IO ()
-eitherDo x act = either putStrErr act x
-
-putStrStart :: String -> IO ()
-putStrStart s = putStr $ "* " ++ s ++ "... "

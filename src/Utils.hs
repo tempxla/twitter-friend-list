@@ -4,6 +4,7 @@ module Utils
   , putStrDone
   , eitherDo
   , tablize
+  , (!!?)
   ) where
 
 import           Data.List (transpose)
@@ -28,3 +29,9 @@ tablize = unlines . map rows . transpose . padcols . transpose
     pad i z      = z ++ replicate (max 0 $ i - length z) ' '
     rows []     = ""
     rows (w:ws) = w ++ foldr (\z acc -> "    " ++ z ++ acc) "" ws
+
+infixl 9 !!?
+(!!?) :: [a] -> Int -> Maybe a
+(!!?) []     _ = Nothing
+(!!?) (x:_)  0 = Just x
+(!!?) (_:xs) i = xs !!? (i - 1)

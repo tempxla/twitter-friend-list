@@ -2,6 +2,7 @@ module Output
   ( createConfigDirectoryIfMissing
   , diffLatestUserList
   , downloadAndDiff
+  , listUsers
   ) where
 
 import           Control.Monad.Except
@@ -25,6 +26,11 @@ showUserDiff diff = case diff of
   where
     link x = "https://twitter.com/" ++ screenName x
     sif f x y = f x ++ if f x == f y then "" else "->" ++ f y
+
+showUser :: User -> [String]
+showUser u = [idStr u, screenName u, show (friendShip u), link u]
+  where
+    link x = "https://twitter.com/" ++ screenName x
 
 configDir :: String
 configDir = ".twitter-friend-list"
@@ -100,3 +106,10 @@ diffUserList old new = do
                then tablize $ map (showUserDiff . Add) new
                else tablize $ map showUserDiff $ makeDiffUserList old new
   return $ if result == "" then "no changes." else result
+
+listUsers :: Int -> IO ()
+listUsers i = do
+  list <- (!!? i) <$> takeUserList (i + 1)
+  case list of
+    Nothing    -> putStrErr "user list not found."
+    Just users -> putStrDone $ tablize $ map showUser users

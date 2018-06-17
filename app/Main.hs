@@ -12,7 +12,7 @@ main = do
     ["diff"]      -> diffLatestUserList
     ["list"]      -> listUsers 0
     ["list", n]   -> listUsers (read n)
-    _                 -> do
+    _             -> do
       putStrLn   "options:      "
       putStrLn $ "  (no options)" ++ "\t" ++ "download and diff list.           "
       putStrLn $ "  diff        " ++ "\t" ++ "diff latest list. (not download)  "

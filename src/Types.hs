@@ -8,7 +8,7 @@ import           Control.Monad.Except
 
 type EO = ExceptT String IO
 
-data FriendShip = Following | Followered | Friend
+data FriendShip = Following | FollowedBy | Friend
   deriving (Show, Read, Eq)
 
 data User = User

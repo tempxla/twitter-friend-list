@@ -24,11 +24,11 @@ showUserDiff diff = case diff of
   where
     link x = "https://twitter.com/" ++ screenName x
     sif f x y = f x ++ if f x == f y then "" else "->" ++ f y
-    tab []     =  ""
-    tab (w:ws) = w ++ go ws
+    tab []     = ""
+    tab (w:ws) = (pad 0 w ++) $
+                 foldr (\(i, z) acc -> '\t' : pad i z ++ acc) "" $ zip [20, 10, 0] ws
       where
-        go []     = ""
-        go (v:vs) = '\t' : (v ++ go vs)
+        pad i z = z ++ replicate (max 0 $ i - length z) ' '
 
 configDir :: String
 configDir = ".twitter-friend-list"
@@ -83,11 +83,10 @@ downloadAndDiff :: IO ()
 downloadAndDiff = do
   list <- takeUserList 1
   newE <- runExceptT downloadUserList
-  eitherDo newE $ \new -> do
-    case list of
-      []    -> putStrDone =<< diffUserList [] new
-      [old] -> putStrDone =<< diffUserList old new
-      _     -> putStrErr "load"
+  eitherDo newE $ \new -> case list of
+    []    -> putStrDone =<< diffUserList [] new
+    [old] -> putStrDone =<< diffUserList old new
+    _     -> putStrErr "load"
 
 diffLatestUserList :: IO ()
 diffLatestUserList = do

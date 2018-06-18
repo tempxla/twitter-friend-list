@@ -11,16 +11,20 @@ This tool uses `stack`. Download the source, build and install, use commands:
     stack install
 
 ## usage
-At first, make a file `~/.twitter_api_keys` which include twitter api keys.
+At first, make a file `~/.twitter_api_keys`, which include twitter api keys.
 
     consumer_key        = "......"
     consumer_secret     = "......"
     access_token        = "......"
     access_token_secret = "......"
 
-When you run this command, the tool downloads followers/followings lists, and diffs latest list.
+When you run this command, the tool downloads followers/followings lists, and compares old lists.
 
     twitter-friend-list
 If you need not download, add "diff" option.
 
     twitter-friend-list diff
+
+For print a list. n is a back number. (default 0, which means lastest)
+
+    twitter-friend-list list n

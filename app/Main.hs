@@ -8,14 +8,17 @@ main = do
   createConfigDirectoryIfMissing
   args <- getArgs
   case args of
-    []            -> downloadAndDiff
-    ["diff"]      -> diffLatestUserList
-    ["list"]      -> listUsers 0
-    ["list", n]   -> listUsers (read n)
-    _             -> do
-      putStrLn   "options:      "
-      putStrLn $ "  (no options)" ++ "\t" ++ "download and diff list.           "
-      putStrLn $ "  diff        " ++ "\t" ++ "diff latest list. (not download)  "
-      putStrLn $ "  list [n]    " ++ "\t" ++ "print latest list. (not download) "
-      putStrLn $ "              " ++ "\t" ++ "n is back number option.          "
-      putStrLn $ "              " ++ "\t" ++ "(default 0, which means lastest)  "
+    []          -> downloadAndDiff
+    ["diff"]    -> diffLatestUserList
+    ["list"]    -> listUsers 0
+    ["list", n] -> listUsers (read n)
+    _           -> desc
+
+desc :: IO ()
+desc = mapM_ putStrLn
+  ["options:                                                                        "
+  ,"    (no options)    - download follower/following lists and compare old lists.  "
+  ,"    diff            - compare latest list. (not download)                       "
+  ,"    list n          - print a friend list. (not download)                       "
+  ,"                      n is a back number. (default 0, which means lastest)      "
+  ]

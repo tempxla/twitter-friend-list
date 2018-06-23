@@ -1,14 +1,19 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Twitter
   ( getUserList
   , getUserId
   , getScreenName
+  , requestTwitter
   ) where
 
 import           Control.Monad.Except
 import           Data.Aeson
 import qualified Data.ByteString.Char8  as BS
+import qualified Data.HashMap.Strict    as M
+import qualified Data.Text              as T
+import qualified Data.Vector            as V
 import           GHC.Generics
 import           Network.HTTP.Conduit
 import           Network.HTTP.Simple    (getResponseStatusCode)
@@ -105,3 +110,27 @@ getScreenName uid = do
   man <- mkSignedManager
   let url = "https://api.twitter.com/1.1/users/show.json?user_id=" ++ uid
   screen_name <$> getResponse man url
+
+requestTwitter :: String -> EO String
+requestTwitter url = do
+  (man, oth, cred) <- mkSignedManager
+  resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
+  case getResponseStatusCode resp of
+    200  -> liftEither . fmap pretty $ eitherDecode $ responseBody resp
+    code -> throwError $ show code ++ "  " ++ show (responseBody resp)
+
+pretty :: Object -> String
+pretty = foldr (obj 0) "" . M.toList
+  where
+    obj n (t, Object o) acc = nest n ++ T.unpack t ++ " :\n" ++
+                              foldr (obj (n + 1)) "" (M.toList o) ++ acc
+    obj n (t, Array o)  acc = nest n ++ T.unpack t ++ " : " ++ arr2 n o ++ acc
+    obj n (t, o)        acc = nest n ++ T.unpack t ++ " : " ++ sf o ++ "\n" ++ acc
+    arr n (Object o)    acc = foldr (obj n) "" (M.toList o) ++ acc
+    arr n (Array o)     acc = nest n ++ arr2 n o ++ acc
+    arr n o             acc = nest n ++ sf o ++ "\n" ++ acc
+    arr2 n o      = nullIf "[]\n"
+                    (\ls -> "[\n" ++ foldr (arr (n + 1)) "" ls ++ nest n ++ "]\n") $ V.toList o
+    nest n        = replicate (n * 2) ' '
+    sf (String o) = "String \"" ++ T.unpack o ++ "\""
+    sf o          = show o

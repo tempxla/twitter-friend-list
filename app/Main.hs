@@ -8,13 +8,14 @@ main = do
   createConfigDirectoryIfMissing
   args <- getArgs
   case args of
-    []                  -> downloadAndDiff
-    ["diff"]            -> diffLatestUserList
-    ["list"]            -> listUsers 0
-    ["list", n]         -> listUsers (read n)
-    ["show", name]      -> getUserId name
-    ["show", "-i", uid] -> getScreenName uid
-    _                   -> desc
+    []                    -> downloadAndDiff
+    ["diff"]              -> diffLatestUserList
+    ["list"]              -> listUsers 0
+    ["list", n]           -> listUsers (read n)
+    ["show", name]        -> getUserId name
+    ["show", "-i", uid]   -> getScreenName uid
+    ["debug", "GET", url] -> requestTwitter url
+    _                     -> desc
 
 desc :: IO ()
 desc = mapM_ putStrLn

@@ -5,6 +5,7 @@ module Output
   , listUsers
   , getUserId
   , getScreenName
+  , requestTwitter
   ) where
 
 import           Control.Monad.Except
@@ -127,3 +128,9 @@ getScreenName uid = do
   putStrStart "get screen name"
   e <- runExceptT $ TW.getScreenName uid
   eitherDo e $ \sname -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ++ sname]]
+
+requestTwitter :: String -> IO ()
+requestTwitter url = do
+  putStrStart "GET"
+  e <- runExceptT $ TW.requestTwitter url
+  eitherDo e putStrDone

@@ -14,6 +14,7 @@ import           Network.HTTP.Conduit
 import           Network.HTTP.Simple    (getResponseStatusCode)
 import           Parser
 import           Types
+import           Utils
 import           Web.Authenticate.OAuth
 
 data FollowerList = FollowerList
@@ -49,65 +50,58 @@ mkSignedManager = do
   manager <- liftIO $ newManager tlsManagerSettings
   return (manager, mkOAuth key, mkCredential key)
 
-getResponse :: FromJSON a => SignedManager -> Request -> EO a
-getResponse (man, oth, cred) req = do
-  sReq <- signOAuth oth cred req
-  resp <- httpLbs sReq man
+getResponse :: FromJSON a => SignedManager -> String -> EO a
+getResponse (man, oth, cred) url = do
+  resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
   case getResponseStatusCode resp of
     200  -> liftEither $ eitherDecode $ responseBody resp
     code -> throwError $ show code ++ "  " ++ show (responseBody resp)
 
-getFollowerList :: SignedManager -> String -> String -> EO FollowerList
-getFollowerList sman which cur = getResponse sman =<< parseRequest url
-  where
-    url = "https://api.twitter.com/1.1/" ++ which ++ "/list.json?count=200&cursor=" ++ cur
+getFollowerList :: SignedManager -> String -> EO FollowerList
+getFollowerList man cur = getResponse man $
+  "https://api.twitter.com/1.1/followers/list.json?count=200&cursor=" ++ cur
 
-getFollowerListAll :: SignedManager -> String -> EO [Follower]
-getFollowerListAll man which = concat <$> f "-1"
+getFriendsList :: SignedManager -> String -> EO FollowerList
+getFriendsList man cur = getResponse man $
+  "https://api.twitter.com/1.1/friends/list.json?count=200&cursor=" ++ cur
+
+getFollowerListAll :: (String -> EO FollowerList) -> EO [Follower]
+getFollowerListAll getList = concat <$> f "-1"
   where
     f "0" = return []
-    f cur = do
-      list <- getFollowerList man which cur
-      (users list :) <$> f (next_cursor_str list)
+    f cur = getList cur >>= \list -> (users list :) <$> f (next_cursor_str list)
 
 --
 -- Return: (Follower, Following)
 --
 getUserList :: EO ([User], [User])
 getUserList = do
-  sman <- mkSignedManager
-  wer <- map followerToUser <$> getFollowerListAll sman "followers"
-  ing <- map (followingToUser wer) <$> getFollowerListAll sman "friends"
+  man <- mkSignedManager
+  wer <- map followerToUser <$> getFollowerListAll (getFollowerList man)
+  ing <- map (followingToUser wer) <$> getFollowerListAll (getFriendsList man)
   return (wer, ing)
-
-followerToUser :: Follower -> User
-followerToUser x = User
-  { idStr      = id_str       x
-  , screenName = screen_name  x
-  , friendShip = if following x then Friend else FollowedBy
-  }
-
-followingToUser :: [User] -> Follower -> User
-followingToUser ws x = User
-  { idStr      = id_str      x
-  , screenName = screen_name x
-  , friendShip = case filter (\w -> id_str x == idStr w) ws of
-                   [] -> Following
-                   _  -> Friend
-  }
-
-getUserInfo :: SignedManager -> Maybe String -> Maybe String -> EO Follower
-getUserInfo sman uid sname = getResponse sman =<< parseRequest url
-  where
-    urlBase = "https://api.twitter.com/1.1/users/show.json"
-    url = urlBase ++ maybe (maybe "" ("?screen_name="++) sname) ("?user_id="++) uid
+    where
+      followerToUser :: Follower -> User
+      followerToUser x = User
+        { idStr      = id_str       x
+        , screenName = screen_name  x
+        , friendShip = if following x then Friend else FollowedBy
+        }
+      followingToUser :: [User] -> Follower -> User
+      followingToUser ws x = User
+        { idStr      = id_str      x
+        , screenName = screen_name x
+        , friendShip = nullIf Following (const Friend) $ filter (\w -> id_str x == idStr w) ws
+        }
 
 getUserId :: String -> EO String
 getUserId sname = do
-  sman <- mkSignedManager
-  id_str <$> getUserInfo sman Nothing (Just sname)
+  man <- mkSignedManager
+  let url = "https://api.twitter.com/1.1/users/show.json?screen_name=" ++ sname
+  id_str <$> getResponse man url
 
 getScreenName :: String -> EO String
 getScreenName uid = do
-  sman <- mkSignedManager
-  screen_name <$> getUserInfo sman (Just uid) Nothing
+  man <- mkSignedManager
+  let url = "https://api.twitter.com/1.1/users/show.json?user_id=" ++ uid
+  screen_name <$> getResponse man url

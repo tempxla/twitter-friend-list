@@ -5,6 +5,7 @@ module Utils
   , eitherDo
   , tablize
   , (!!?)
+  , nullIf
   ) where
 
 import           Data.List (transpose)
@@ -35,3 +36,7 @@ infixl 9 !!?
 (!!?) []     _ = Nothing
 (!!?) (x:_)  0 = Just x
 (!!?) (_:xs) i = xs !!? (i - 1)
+
+nullIf :: b -> ([a] -> b) -> [a] -> b
+nullIf b _ [] = b
+nullIf _ f xs = f xs

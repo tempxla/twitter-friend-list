@@ -2,6 +2,8 @@
 
 module Twitter
   ( getUserList
+  , getUserId
+  , getScreenName
   ) where
 
 import           Control.Monad.Except
@@ -20,7 +22,6 @@ data FollowerList = FollowerList
   } deriving (Show, Generic)
 
 instance FromJSON FollowerList
-instance ToJSON FollowerList
 
 data Follower = Follower
   { id_str      :: String
@@ -29,7 +30,6 @@ data Follower = Follower
   } deriving (Show, Generic)
 
 instance FromJSON Follower
-instance ToJSON Follower
 
 type SignedManager = (Manager, OAuth, Credential)
 
@@ -43,15 +43,24 @@ mkOAuth k = newOAuth
 mkCredential :: TwitApiKeys -> Credential
 mkCredential k = newCredential (BS.pack $ accessToken k) (BS.pack $ accessTokenSecret k)
 
-getFollowerList :: SignedManager -> String -> String -> EO FollowerList
-getFollowerList (man, oth, cred) which cur = do
-  req <- parseRequest
-    $ "https://api.twitter.com/1.1/" ++ which ++ "/list.json?count=200&cursor=" ++ cur
+mkSignedManager :: EO SignedManager
+mkSignedManager = do
+  key <- liftEither =<< liftIO readTwitApiKeys
+  manager <- liftIO $ newManager tlsManagerSettings
+  return (manager, mkOAuth key, mkCredential key)
+
+getResponse :: FromJSON a => SignedManager -> Request -> EO a
+getResponse (man, oth, cred) req = do
   sReq <- signOAuth oth cred req
   resp <- httpLbs sReq man
   case getResponseStatusCode resp of
     200  -> liftEither $ eitherDecode $ responseBody resp
     code -> throwError $ show code ++ "  " ++ show (responseBody resp)
+
+getFollowerList :: SignedManager -> String -> String -> EO FollowerList
+getFollowerList sman which cur = getResponse sman =<< parseRequest url
+  where
+    url = "https://api.twitter.com/1.1/" ++ which ++ "/list.json?count=200&cursor=" ++ cur
 
 getFollowerListAll :: SignedManager -> String -> EO [Follower]
 getFollowerListAll man which = concat <$> f "-1"
@@ -66,9 +75,7 @@ getFollowerListAll man which = concat <$> f "-1"
 --
 getUserList :: EO ([User], [User])
 getUserList = do
-  key <- liftEither =<< liftIO readTwitApiKeys
-  manager <- liftIO $ newManager tlsManagerSettings
-  let sman = (manager, mkOAuth key, mkCredential key)
+  sman <- mkSignedManager
   wer <- map followerToUser <$> getFollowerListAll sman "followers"
   ing <- map (followingToUser wer) <$> getFollowerListAll sman "friends"
   return (wer, ing)
@@ -88,3 +95,19 @@ followingToUser ws x = User
                    [] -> Following
                    _  -> Friend
   }
+
+getUserInfo :: SignedManager -> Maybe String -> Maybe String -> EO Follower
+getUserInfo sman uid sname = getResponse sman =<< parseRequest url
+  where
+    urlBase = "https://api.twitter.com/1.1/users/show.json"
+    url = urlBase ++ maybe (maybe "" ("?screen_name="++) sname) ("?user_id="++) uid
+
+getUserId :: String -> EO String
+getUserId sname = do
+  sman <- mkSignedManager
+  id_str <$> getUserInfo sman Nothing (Just sname)
+
+getScreenName :: String -> EO String
+getScreenName uid = do
+  sman <- mkSignedManager
+  screen_name <$> getUserInfo sman (Just uid) Nothing

@@ -3,6 +3,8 @@ module Output
   , diffLatestUserList
   , downloadAndDiff
   , listUsers
+  , getUserId
+  , getScreenName
   ) where
 
 import           Control.Monad.Except
@@ -113,3 +115,15 @@ listUsers i = do
   case list of
     Nothing    -> putStrErr "user list not found."
     Just users -> putStrDone $ tablize $ map showUser users
+
+getUserId :: String -> IO ()
+getUserId sname = do
+  putStrStart "get user id"
+  e <- runExceptT $ TW.getUserId sname
+  eitherDo e $ \uid -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ++ sname]]
+
+getScreenName :: String -> IO ()
+getScreenName uid = do
+  putStrStart "get screen name"
+  e <- runExceptT $ TW.getScreenName uid
+  eitherDo e $ \sname -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ++ sname]]

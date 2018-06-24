@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Twitter
   ( getUserList
@@ -11,9 +10,6 @@ module Twitter
 import           Control.Monad.Except
 import           Data.Aeson
 import qualified Data.ByteString.Char8     as BS
-import qualified Data.HashMap.Strict       as M
-import qualified Data.Text                 as T
-import qualified Data.Vector               as V
 import           GHC.Generics
 import           Network.HTTP.Conduit
 import           Network.HTTP.Types.Status (statusCode)
@@ -60,7 +56,7 @@ getResponse (man, oth, cred) url = do
   resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
   case statusCode (responseStatus resp) of
     200  -> liftEither $ eitherDecode $ responseBody resp
-    code -> throwError $ show (responseStatus resp) ++ "\n" ++
+    _    -> throwError $ show (responseStatus resp) ++ "\n" ++
                          either show showValue (eitherDecode $ responseBody resp)
 
 getFollowerList :: SignedManager -> String -> EO FollowerList

@@ -29,6 +29,7 @@ library:
   - directory
   - filepath
   - http-conduit
+  - http-types
   - authenticate-oauth
   - aeson
   - bytestring

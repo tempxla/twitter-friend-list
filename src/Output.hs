@@ -133,4 +133,4 @@ requestTwitter :: String -> IO ()
 requestTwitter url = do
   putStrStart "GET"
   e <- runExceptT $ TW.requestTwitter url
-  eitherDo e putStrDone
+  eitherDo e $ \v -> putStrDone $ showValue v

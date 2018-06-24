@@ -10,13 +10,13 @@ module Twitter
 
 import           Control.Monad.Except
 import           Data.Aeson
-import qualified Data.ByteString.Char8  as BS
-import qualified Data.HashMap.Strict    as M
-import qualified Data.Text              as T
-import qualified Data.Vector            as V
+import qualified Data.ByteString.Char8     as BS
+import qualified Data.HashMap.Strict       as M
+import qualified Data.Text                 as T
+import qualified Data.Vector               as V
 import           GHC.Generics
 import           Network.HTTP.Conduit
-import           Network.HTTP.Simple    (getResponseStatusCode)
+import           Network.HTTP.Types.Status (statusCode)
 import           Parser
 import           Types
 import           Utils
@@ -58,9 +58,10 @@ mkSignedManager = do
 getResponse :: FromJSON a => SignedManager -> String -> EO a
 getResponse (man, oth, cred) url = do
   resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
-  case getResponseStatusCode resp of
+  case statusCode (responseStatus resp) of
     200  -> liftEither $ eitherDecode $ responseBody resp
-    code -> throwError $ show code ++ "  " ++ show (responseBody resp)
+    code -> throwError $ show (responseStatus resp) ++ "\n" ++
+                         either show showValue (eitherDecode $ responseBody resp)
 
 getFollowerList :: SignedManager -> String -> EO FollowerList
 getFollowerList man cur = getResponse man $
@@ -111,31 +112,7 @@ getScreenName uid = do
   let url = "https://api.twitter.com/1.1/users/show.json?user_id=" ++ uid
   screen_name <$> getResponse man url
 
-requestTwitter :: String -> EO String
+requestTwitter :: String -> EO Value
 requestTwitter url = do
-  (man, oth, cred) <- mkSignedManager
-  resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
-  case getResponseStatusCode resp of
-    200  -> liftEither . fmap pretty $ eitherDecode $ responseBody resp
-    code -> throwError $ show code ++ "\n" ++
-                         show (fmap pretty (eitherDecode $ responseBody resp))
-
-pretty :: Value -> String
-pretty v = case v of
-  (Object o) -> objf 0 o
-  (Array o)  -> arrf 0 o
-  o          -> sf o
-  where
-    obj n (t, Object o) acc = nest n ++ T.unpack t ++ " : " ++ objf n o ++ acc
-    obj n (t, Array o)  acc = nest n ++ T.unpack t ++ " : " ++ arrf n o ++ acc
-    obj n (t, o)        acc = nest n ++ T.unpack t ++ " : " ++ sf o ++ "\n" ++ acc
-    arr n (Object o)    acc = nest n ++ objf n o ++ acc
-    arr n (Array o)     acc = nest n ++ arrf n o ++ acc
-    arr n o             acc = nest n ++ sf o ++ "\n" ++ acc
-    objf n            = paren n '{' '}' obj . M.toList
-    arrf n            = paren n '[' ']' arr . V.toList
-    nest n            = replicate (n * 2) ' '
-    paren _ p q _ [] = p : q : "\n"
-    paren n p q f ls = p : '\n': foldr (f $ n + 1) "" ls ++ nest n ++ q : "\n"
-    sf (String o) = "String \"" ++ T.unpack o ++ "\""
-    sf o          = show o
+  man <- mkSignedManager
+  getResponse man url

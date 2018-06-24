@@ -132,10 +132,10 @@ pretty v = case v of
     arr n (Object o)    acc = nest n ++ objf n o ++ acc
     arr n (Array o)     acc = nest n ++ arrf n o ++ acc
     arr n o             acc = nest n ++ sf o ++ "\n" ++ acc
-    objf n            = paren n '{' obj . M.toList
-    arrf n            = paren n '[' arr . V.toList
+    objf n            = paren n '{' '}' obj . M.toList
+    arrf n            = paren n '[' ']' arr . V.toList
     nest n            = replicate (n * 2) ' '
-    paren n p f = (p:) . (++ q:"\n") . nullIf "" (('\n':) . (++ nest n) . foldr (f (n+1)) "")
-      where q = if p == '[' then ']' else '}'
+    paren _ p q _ [] = p : q : "\n"
+    paren n p q f ls = p : '\n': foldr (f $ n + 1) "" ls ++ nest n ++ q : "\n"
     sf (String o) = "String \"" ++ T.unpack o ++ "\""
     sf o          = show o

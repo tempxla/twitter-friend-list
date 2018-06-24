@@ -57,7 +57,7 @@ getResponse (man, oth, cred) url = do
   case statusCode (responseStatus resp) of
     200  -> liftEither $ eitherDecode $ responseBody resp
     _    -> throwError $ show (responseStatus resp) ++ "\n" ++
-                         either show showValue (eitherDecode $ responseBody resp)
+                         either id showValue (eitherDecode $ responseBody resp)
 
 getFollowerList :: SignedManager -> String -> EO FollowerList
 getFollowerList man cur = getResponse man $

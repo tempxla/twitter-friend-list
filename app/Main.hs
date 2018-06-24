@@ -24,6 +24,6 @@ desc = mapM_ putStrLn
   ,"  diff               - compare latest list. (not download)                      "
   ,"  list n             - print a friend list. (not download)                      "
   ,"                       n is a back number. (default 0, which means lastest)     "
-  ,"  show screen_name   - get user_id.                                             "
-  ,"  show -i user_id    - get screen_name.                                         "
+  ,"  show screen_name   - get user_id by screen_name.                              "
+  ,"  show -i user_id    - get screen_name by user_id.                              "
   ]

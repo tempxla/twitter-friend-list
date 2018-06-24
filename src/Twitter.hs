@@ -117,20 +117,25 @@ requestTwitter url = do
   resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
   case getResponseStatusCode resp of
     200  -> liftEither . fmap pretty $ eitherDecode $ responseBody resp
-    code -> throwError $ show code ++ "  " ++ show (responseBody resp)
+    code -> throwError $ show code ++ "\n" ++
+                         show (fmap pretty (eitherDecode $ responseBody resp))
 
-pretty :: Object -> String
-pretty = foldr (obj 0) "" . M.toList
+pretty :: Value -> String
+pretty v = case v of
+  (Object o) -> objf 0 o
+  (Array o)  -> arrf 0 o
+  o          -> sf o
   where
-    obj n (t, Object o) acc = nest n ++ T.unpack t ++ " :\n" ++
-                              foldr (obj (n + 1)) "" (M.toList o) ++ acc
-    obj n (t, Array o)  acc = nest n ++ T.unpack t ++ " : " ++ arr2 n o ++ acc
+    obj n (t, Object o) acc = nest n ++ T.unpack t ++ " : " ++ objf n o ++ acc
+    obj n (t, Array o)  acc = nest n ++ T.unpack t ++ " : " ++ arrf n o ++ acc
     obj n (t, o)        acc = nest n ++ T.unpack t ++ " : " ++ sf o ++ "\n" ++ acc
-    arr n (Object o)    acc = foldr (obj n) "" (M.toList o) ++ acc
-    arr n (Array o)     acc = nest n ++ arr2 n o ++ acc
+    arr n (Object o)    acc = nest n ++ objf n o ++ acc
+    arr n (Array o)     acc = nest n ++ arrf n o ++ acc
     arr n o             acc = nest n ++ sf o ++ "\n" ++ acc
-    arr2 n o      = nullIf "[]\n"
-                    (\ls -> "[\n" ++ foldr (arr (n + 1)) "" ls ++ nest n ++ "]\n") $ V.toList o
-    nest n        = replicate (n * 2) ' '
+    objf n            = paren n '{' obj . M.toList
+    arrf n            = paren n '[' arr . V.toList
+    nest n            = replicate (n * 2) ' '
+    paren n p f = (p:) . (++ q:"\n") . nullIf "" (('\n':) . (++ nest n) . foldr (f (n+1)) "")
+      where q = if p == '[' then ']' else '}'
     sf (String o) = "String \"" ++ T.unpack o ++ "\""
     sf o          = show o

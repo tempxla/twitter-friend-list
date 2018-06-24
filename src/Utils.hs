@@ -62,6 +62,6 @@ showValue v = case v of
     arrf n            = paren n '[' ']' arr . V.toList
     nest n            = replicate (n * 2) ' '
     paren _ p q _ [] = p : q : "\n"
-    paren n p q f ls = p : '\n': foldr (f $ n + 1) "" ls ++ nest n ++ q : "\n"
+    paren n p q f ls = p : '\n' : foldr (f $ n + 1) "" ls ++ nest n ++ q : "\n"
     sf (String o) = "String \"" ++ T.unpack o ++ "\""
     sf o          = show o

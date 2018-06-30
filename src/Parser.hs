@@ -3,12 +3,14 @@ module Parser
   , TwitApiKeys (..)
   ) where
 
+import           Control.Monad.Except
 import           System.Directory
 import           System.FilePath.Posix
 import           Text.Parsec.Char
 import           Text.Parsec.Combinator
 import           Text.Parsec.Prim
 import           Text.Parsec.String
+import           Types
 
 data TwitApiKeys = TwitApiKeys
   { consumerKey       :: String
@@ -17,8 +19,8 @@ data TwitApiKeys = TwitApiKeys
   , accessTokenSecret :: String
   } deriving (Show)
 
-readTwitApiKeys :: IO (Either String TwitApiKeys)
-readTwitApiKeys = do
+readTwitApiKeys :: EO TwitApiKeys
+readTwitApiKeys = liftEither <=< liftIO $ do
   filePath <- fmap (</> ".twitter_api_keys") getHomeDirectory
   either (Left . show) mkTwitApiKeys <$> parseFromFile parseKeyValueList filePath
 

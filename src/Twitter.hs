@@ -47,7 +47,7 @@ mkCredential k = newCredential (BS.pack $ accessToken k) (BS.pack $ accessTokenS
 
 mkSignedManager :: EO SignedManager
 mkSignedManager = do
-  key <- liftEither =<< liftIO readTwitApiKeys
+  key <- readTwitApiKeys
   manager <- liftIO $ newManager tlsManagerSettings
   return (manager, mkOAuth key, mkCredential key)
 

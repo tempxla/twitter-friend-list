@@ -1,14 +1,20 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Parser
   ( readTwitApiKeys
   , TwitApiKeys (..)
   ) where
 
+import           Control.Monad.Except
+import qualified Data.Text              as T
 import           System.Directory
 import           System.FilePath.Posix
 import           Text.Parsec.Char
 import           Text.Parsec.Combinator
 import           Text.Parsec.Prim
 import           Text.Parsec.String
+import           Types
+import           Utils
 
 data TwitApiKeys = TwitApiKeys
   { consumerKey       :: String
@@ -17,14 +23,14 @@ data TwitApiKeys = TwitApiKeys
   , accessTokenSecret :: String
   } deriving (Show)
 
-readTwitApiKeys :: IO (Either String TwitApiKeys)
-readTwitApiKeys = do
+readTwitApiKeys :: EO TwitApiKeys
+readTwitApiKeys = liftEither <=< liftIO $ do
   filePath <- fmap (</> ".twitter_api_keys") getHomeDirectory
-  either (Left . show) mkTwitApiKeys <$> parseFromFile parseKeyValueList filePath
+  either (Left . tshow) mkTwitApiKeys <$> parseFromFile parseKeyValueList filePath
 
-mkTwitApiKeys :: [(String, String)] -> Either String TwitApiKeys
+mkTwitApiKeys :: [(String, String)] -> Either T.Text TwitApiKeys
 mkTwitApiKeys kvs = do
-  let lookupE key = maybe (Left $ "not found.: " ++ key) Right $ lookup key kvs
+  let lookupE key = maybe (Left $ "not found.: " ＋ T.pack key) Right $ lookup key kvs
   ck <- lookupE "consumer_key"
   cs <- lookupE "consumer_secret"
   at <- lookupE "access_token"

@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Twitter
   ( getUserList
@@ -10,6 +11,7 @@ module Twitter
 import           Control.Monad.Except
 import           Data.Aeson
 import qualified Data.ByteString.Char8     as BS
+import qualified Data.Text                 as T
 import           GHC.Generics
 import           Network.HTTP.Conduit
 import           Network.HTTP.Types.Status (statusCode)
@@ -20,14 +22,14 @@ import           Web.Authenticate.OAuth
 
 data FollowerList = FollowerList
   { users           :: [Follower]
-  , next_cursor_str :: String
+  , next_cursor_str :: T.Text
   } deriving (Show, Generic)
 
 instance FromJSON FollowerList
 
 data Follower = Follower
-  { id_str      :: String
-  , screen_name :: String
+  { id_str      :: T.Text
+  , screen_name :: T.Text
   , following   :: Bool
   } deriving (Show, Generic)
 
@@ -47,27 +49,27 @@ mkCredential k = newCredential (BS.pack $ accessToken k) (BS.pack $ accessTokenS
 
 mkSignedManager :: EO SignedManager
 mkSignedManager = do
-  key <- liftEither =<< liftIO readTwitApiKeys
+  key <- readTwitApiKeys
   manager <- liftIO $ newManager tlsManagerSettings
   return (manager, mkOAuth key, mkCredential key)
 
-getResponse :: FromJSON a => SignedManager -> String -> EO a
+getResponse :: FromJSON a => SignedManager -> T.Text -> EO a
 getResponse (man, oth, cred) url = do
-  resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest url
+  resp <- flip httpLbs man =<< signOAuth oth cred =<< parseRequest (T.unpack url)
   case statusCode (responseStatus resp) of
-    200  -> liftEither $ eitherDecode $ responseBody resp
-    _    -> throwError $ show (responseStatus resp) ++ "\n" ++
-                         either id showValue (eitherDecode $ responseBody resp)
+    200  -> liftEither $ mapLeft T.pack $ eitherDecode $ responseBody resp
+    _    -> throwError $ tshow (responseStatus resp) ＋ "\n" ＋
+                         either T.pack showValue (eitherDecode $ responseBody resp)
 
-getFollowerList :: SignedManager -> String -> EO FollowerList
+getFollowerList :: SignedManager -> T.Text -> EO FollowerList
 getFollowerList man cur = getResponse man $
-  "https://api.twitter.com/1.1/followers/list.json?count=200&cursor=" ++ cur
+  "https://api.twitter.com/1.1/followers/list.json?count=200&cursor=" ＋ cur
 
-getFriendsList :: SignedManager -> String -> EO FollowerList
+getFriendsList :: SignedManager -> T.Text -> EO FollowerList
 getFriendsList man cur = getResponse man $
-  "https://api.twitter.com/1.1/friends/list.json?count=200&cursor=" ++ cur
+  "https://api.twitter.com/1.1/friends/list.json?count=200&cursor=" ＋ cur
 
-getFollowerListAll :: (String -> EO FollowerList) -> EO [Follower]
+getFollowerListAll :: (T.Text -> EO FollowerList) -> EO [Follower]
 getFollowerListAll getList = concat <$> f "-1"
   where
     f "0" = return []
@@ -96,19 +98,19 @@ getUserList = do
         , friendShip = nullIf Following (const Friend) $ filter (\w -> id_str x == idStr w) ws
         }
 
-getUserId :: String -> EO String
+getUserId :: T.Text -> EO T.Text
 getUserId sname = do
   man <- mkSignedManager
-  let url = "https://api.twitter.com/1.1/users/show.json?screen_name=" ++ sname
+  let url = "https://api.twitter.com/1.1/users/show.json?screen_name=" ＋ sname
   id_str <$> getResponse man url
 
-getScreenName :: String -> EO String
+getScreenName :: T.Text -> EO T.Text
 getScreenName uid = do
   man <- mkSignedManager
-  let url = "https://api.twitter.com/1.1/users/show.json?user_id=" ++ uid
+  let url = "https://api.twitter.com/1.1/users/show.json?user_id=" ＋ uid
   screen_name <$> getResponse man url
 
-requestTwitter :: String -> EO Value
+requestTwitter :: T.Text -> EO Value
 requestTwitter url = do
   man <- mkSignedManager
   getResponse man url

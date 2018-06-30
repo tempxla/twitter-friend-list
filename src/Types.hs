@@ -5,14 +5,15 @@ module Types
   ) where
 
 import           Control.Monad.Except
+import qualified Data.Text            as T
 
-type EO = ExceptT String IO
+type EO = ExceptT T.Text IO
 
 data FriendShip = Following | FollowedBy | Friend
   deriving (Show, Read, Eq)
 
 data User = User
-  { idStr      :: String
-  , screenName :: String
+  { idStr      :: T.Text
+  , screenName :: T.Text
   , friendShip :: FriendShip
   } deriving (Show, Read, Eq)

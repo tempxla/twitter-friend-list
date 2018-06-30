@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Output
   ( createConfigDirectoryIfMissing
   , diffLatestUserList
@@ -10,6 +12,7 @@ module Output
 
 import           Control.Monad.Except
 import           Data.List             (sortBy, union)
+import qualified Data.Text             as T
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           System.Directory
@@ -21,19 +24,19 @@ import           Utils
 data UserDiff = Add User | Mod User User | Del User
   deriving (Show)
 
-showUserDiff :: UserDiff -> [String]
+showUserDiff :: UserDiff -> [T.Text]
 showUserDiff diff = case diff of
-  (Add x)   -> ["ADD", screenName x,       show (friendShip x),         link x]
-  (Mod x y) -> ["MOD", sif screenName x y, sif (show . friendShip) x y, link y]
-  (Del x)   -> ["DEL", screenName x,       show (friendShip x),         link x]
+  (Add x)   -> ["ADD", screenName x,       tshow (friendShip x),         link x]
+  (Mod x y) -> ["MOD", sif screenName x y, sif (tshow . friendShip) x y, link y]
+  (Del x)   -> ["DEL", screenName x,       tshow (friendShip x),         link x]
   where
-    link x = "https://twitter.com/" ++ screenName x
-    sif f x y = f x ++ if f x == f y then "" else "->" ++ f y
+    link x = "https://twitter.com/" ＋ screenName x
+    sif f x y = f x ＋ if f x == f y then "" else "->" ＋ f y
 
-showUser :: User -> [String]
-showUser u = [idStr u, screenName u, show (friendShip u), link u]
+showUser :: User -> [T.Text]
+showUser u = [idStr u, screenName u, tshow (friendShip u), link u]
   where
-    link x = "https://twitter.com/" ++ screenName x
+    link x = "https://twitter.com/" ＋ screenName x
 
 configDir :: String
 configDir = ".twitter-friend-list"
@@ -44,13 +47,13 @@ getConfigPath = fmap (</> configDir) getHomeDirectory
 getCurrentDateTime :: IO String
 getCurrentDateTime = formatTime defaultTimeLocale "%y%m%d%H%M%S" <$> getZonedTime
 
-outputUserList :: String -> [User] -> [User] -> IO String
+outputUserList :: String -> [User] -> [User] -> IO T.Text
 outputUserList confDir wer ing = do
   outDir <- (confDir </>) <$> getCurrentDateTime
   createDirectory outDir
   writeFile (outDir </> "followers.txt") $ unlines $ map show wer
   writeFile (outDir </> "following.txt") $ unlines $ map show ing
-  return outDir
+  return $ T.pack outDir
 
 takeUserList :: Int -> IO [[User]]
 takeUserList i = do
@@ -102,7 +105,7 @@ diffLatestUserList = do
     [new, old] -> putStrDone =<< diffUserList old new
     _          -> putStrErr "load"
 
-diffUserList :: [User] -> [User] -> IO String
+diffUserList :: [User] -> [User] -> IO T.Text
 diffUserList old new = do
   putStrStart "diff"
   let result = if   null old
@@ -117,19 +120,19 @@ listUsers i = do
     Nothing    -> putStrErr "user list not found."
     Just users -> putStrDone $ tablize $ map showUser users
 
-getUserId :: String -> IO ()
+getUserId :: T.Text -> IO ()
 getUserId sname = do
   putStrStart "get user id"
   e <- runExceptT $ TW.getUserId sname
-  eitherDo e $ \uid -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ++ sname]]
+  eitherDo e $ \uid -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ＋ sname]]
 
-getScreenName :: String -> IO ()
+getScreenName :: T.Text -> IO ()
 getScreenName uid = do
   putStrStart "get screen name"
   e <- runExceptT $ TW.getScreenName uid
-  eitherDo e $ \sname -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ++ sname]]
+  eitherDo e $ \sname -> putStrDone $ tablize [[uid, sname, "https://twitter.com/" ＋ sname]]
 
-requestTwitter :: String -> IO ()
+requestTwitter :: T.Text -> IO ()
 requestTwitter url = do
   putStrStart "GET"
   e <- runExceptT $ TW.requestTwitter url

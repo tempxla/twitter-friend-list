@@ -1,5 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
+import qualified Data.Text          as T
+import qualified Data.Text.IO       as TO
 import           Output
 import           System.Environment
 
@@ -12,13 +16,13 @@ main = do
     ["diff"]              -> diffLatestUserList
     ["list"]              -> listUsers 0
     ["list", n]           -> listUsers (read n)
-    ["show", name]        -> getUserId name
-    ["show", "-i", uid]   -> getScreenName uid
-    ["debug", "GET", url] -> requestTwitter url
+    ["show", name]        -> getUserId $ T.pack name
+    ["show", "-i", uid]   -> getScreenName $ T.pack uid
+    ["debug", "GET", url] -> requestTwitter $ T.pack url
     _                     -> desc
 
 desc :: IO ()
-desc = mapM_ putStrLn
+desc = mapM_ TO.putStrLn
   ["options:                                                                        "
   ,"  (no options)       - download follower/following lists and compare old lists. "
   ,"  diff               - compare latest list. (not download)                      "

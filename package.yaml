@@ -49,6 +49,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - twitter-friend-list
+    - text
 
 tests:
   twitter-friend-list-test:

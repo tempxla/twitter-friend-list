@@ -12,6 +12,7 @@ module Utils
   , (＋)
   , mapLeft
   , tshow
+  , tread
   ) where
 
 import           Data.Aeson
@@ -81,3 +82,6 @@ mapLeft _ (Right r) = Right r
 
 tshow :: Show a => a -> T.Text
 tshow = T.pack . show
+
+tread :: Read a => T.Text -> a
+tread = read . T.unpack

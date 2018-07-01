@@ -13,6 +13,7 @@ module Output
 import           Control.Monad.Except
 import           Data.List             (sortBy, union)
 import qualified Data.Text             as T
+import qualified Data.Text.IO          as TO
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           System.Directory
@@ -51,8 +52,8 @@ outputUserList :: String -> [User] -> [User] -> IO T.Text
 outputUserList confDir wer ing = do
   outDir <- (confDir </>) <$> getCurrentDateTime
   createDirectory outDir
-  writeFile (outDir </> "followers.txt") $ unlines $ map show wer
-  writeFile (outDir </> "following.txt") $ unlines $ map show ing
+  TO.writeFile (outDir </> "followers.txt") $ T.unlines $ map tshow wer
+  TO.writeFile (outDir </> "following.txt") $ T.unlines $ map tshow ing
   return $ T.pack outDir
 
 takeUserList :: Int -> IO [[User]]
@@ -61,7 +62,7 @@ takeUserList i = do
   confDir <- getConfigPath
   list <- take i . sortBy (flip compare) <$> listDirectory confDir
   forM list $ \dir -> do
-    let r file = map read . lines <$> readFile (confDir </> dir </> file)
+    let r file = map tread . T.lines <$> TO.readFile (confDir </> dir </> file)
     union <$> r "followers.txt" <*> r "following.txt"
 
 makeDiffUserList :: [User] -> [User] -> [UserDiff]

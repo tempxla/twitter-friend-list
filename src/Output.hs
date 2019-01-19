@@ -6,6 +6,7 @@ module Output
   , getUserId
   , getScreenName
   , requestTwitter
+  , tweet
   ) where
 
 import           Control.Monad.Except
@@ -134,3 +135,9 @@ requestTwitter url = do
   putStrStart "GET"
   e <- runExceptT $ TW.requestTwitter url
   eitherDo e $ \v -> putStrDone $ showValue v
+
+tweet :: String -> IO ()
+tweet tw = do
+  putStrStart "tweet"
+  e <- runExceptT $ TW.tweet tw
+  eitherDo e $ \_ -> putStrDone ""

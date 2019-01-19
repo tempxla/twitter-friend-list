@@ -15,6 +15,7 @@ main = do
     ["show", name]        -> getUserId name
     ["show", "-i", uid]   -> getScreenName uid
     ["debug", "GET", url] -> requestTwitter url
+    ["tweet", tw]         -> tweet tw
     _                     -> desc
 
 desc :: IO ()

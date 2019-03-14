@@ -2,6 +2,8 @@ module Types
   ( EO
   , FriendShip (..)
   , User (..)
+  , Followers (..)
+  , Friends (..)
   ) where
 
 import           Control.Monad.Except
@@ -16,3 +18,6 @@ data User = User
   , screenName :: String
   , friendShip :: FriendShip
   } deriving (Show, Read, Eq)
+
+newtype Followers = Followers { followersToUsers :: [User] }
+newtype Friends = Friends { friendsToUsers :: [User] }

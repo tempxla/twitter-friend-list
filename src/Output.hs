@@ -45,12 +45,12 @@ getConfigPath = fmap (</> configDir) getHomeDirectory
 getCurrentDateTime :: IO String
 getCurrentDateTime = formatTime defaultTimeLocale "%y%m%d%H%M%S" <$> getZonedTime
 
-outputUserList :: String -> [User] -> [User] -> IO String
+outputUserList :: String -> Followers -> Friends -> IO String
 outputUserList confDir wer ing = do
   outDir <- (confDir </>) <$> getCurrentDateTime
   createDirectory outDir
-  writeFile (outDir </> "followers.txt") $ unlines $ map show wer
-  writeFile (outDir </> "following.txt") $ unlines $ map show ing
+  writeFile (outDir </> "followers.txt") . unlines . map show $ followersToUsers wer
+  writeFile (outDir </> "following.txt") . unlines . map show $ friendsToUsers ing
   return outDir
 
 takeUserList :: Int -> IO [[User]]
@@ -83,7 +83,7 @@ downloadUserList = do
   liftIO $ do
     confDir <- getConfigPath
     putStrDone =<< outputUserList confDir wer ing
-  return $ union wer ing
+  return $ union (followersToUsers wer) (friendsToUsers ing)
 
 downloadAndDiff :: IO ()
 downloadAndDiff = do

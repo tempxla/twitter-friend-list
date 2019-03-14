@@ -21,20 +21,20 @@ import           Types
 import           Utils
 import           Web.Authenticate.OAuth
 
-data FollowerList = FollowerList
-  { users           :: [Follower]
+data TwUserList = TwUserList
+  { users           :: [TwUser]
   , next_cursor_str :: String
   } deriving (Show, Generic)
 
-instance FromJSON FollowerList
+instance FromJSON TwUserList
 
-data Follower = Follower
+data TwUser = TwUser
   { id_str      :: String
   , screen_name :: String
   , following   :: Bool
   } deriving (Show, Generic)
 
-instance FromJSON Follower
+instance FromJSON TwUser
 
 type SignedManager = (Manager, OAuth, Credential)
 
@@ -70,38 +70,35 @@ httpPOST (man, oth, cred) url prm = do
     _    -> throwError $ show (responseStatus resp) ++ "\n" ++
                          either id showValue (eitherDecode $ responseBody resp)
 
-getFollowerList :: SignedManager -> String -> EO FollowerList
+getFollowerList :: SignedManager -> String -> EO TwUserList
 getFollowerList man cur = httpGET man $
   "https://api.twitter.com/1.1/followers/list.json?count=200&cursor=" ++ cur
 
-getFriendsList :: SignedManager -> String -> EO FollowerList
+getFriendsList :: SignedManager -> String -> EO TwUserList
 getFriendsList man cur = httpGET man $
   "https://api.twitter.com/1.1/friends/list.json?count=200&cursor=" ++ cur
 
-getFollowerListAll :: (String -> EO FollowerList) -> EO [Follower]
-getFollowerListAll getList = concat <$> f "-1"
+getUserListAll :: (String -> EO TwUserList) -> EO [TwUser]
+getUserListAll getList = concat <$> f "-1"
   where
     f "0" = return []
     f cur = getList cur >>= \list -> (users list :) <$> f (next_cursor_str list)
 
---
--- Return: (Follower, Following)
---
-getUserList :: EO ([User], [User])
+getUserList :: EO (Followers, Friends)
 getUserList = do
   man <- mkSignedManager
-  wer <- map followerToUser <$> getFollowerListAll (getFollowerList man)
-  ing <- map (followingToUser wer) <$> getFollowerListAll (getFriendsList man)
-  return (wer, ing)
+  wer <- map followerToUser <$> getUserListAll (getFollowerList man)
+  ing <- map (friendToUser wer) <$> getUserListAll (getFriendsList man)
+  return (Followers wer, Friends ing)
     where
-      followerToUser :: Follower -> User
+      followerToUser :: TwUser -> User
       followerToUser x = User
         { idStr      = id_str       x
         , screenName = screen_name  x
         , friendShip = if following x then Friend else FollowedBy
         }
-      followingToUser :: [User] -> Follower -> User
-      followingToUser ws x = User
+      friendToUser :: [User] -> TwUser -> User
+      friendToUser ws x = User
         { idStr      = id_str      x
         , screenName = screen_name x
         , friendShip = nullIf Following (const Friend) $ filter (\w -> id_str x == idStr w) ws

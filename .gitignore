@@ -1,3 +1,4 @@
 .stack-work/
 twitter-friend-list.cabal
 *~
+stack.yaml.lock

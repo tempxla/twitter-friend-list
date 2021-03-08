@@ -7,6 +7,7 @@ module Output
   , getScreenName
   , requestTwitter
   , tweet
+  , addListMember
   ) where
 
 import           Control.Monad.Except
@@ -140,4 +141,10 @@ tweet :: String -> IO ()
 tweet tw = do
   putStrStart "tweet"
   e <- runExceptT $ TW.tweet tw
+  eitherDo e $ \_ -> putStrDone ""
+
+addListMember :: String -> String -> IO ()
+addListMember lid uid = do
+  putStrStart "addListMember"
+  e <- runExceptT $ TW.addListMember lid uid
   eitherDo e $ \_ -> putStrDone ""

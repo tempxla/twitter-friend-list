@@ -6,6 +6,7 @@ module Twitter
   , getScreenName
   , requestTwitter
   , tweet
+  , addListMember
   ) where
 
 import           Control.Monad.Except
@@ -126,4 +127,12 @@ tweet tw = do
   man <- mkSignedManager
   let url = "https://api.twitter.com/1.1/statuses/update.json"
       prm = [(BS.pack "status", encodeUtf8 $ T.pack tw)]
+  httpPOST man url prm
+
+addListMember :: String -> String -> EO Value
+addListMember lid uid = do
+  man <- mkSignedManager
+  let url = "https://api.twitter.com/1.1/lists/members/create.json"
+      prm = [(BS.pack "list_id", encodeUtf8 $ T.pack lid)
+            ,(BS.pack "user_id", encodeUtf8 $ T.pack uid)]
   httpPOST man url prm
